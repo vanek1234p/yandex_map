@@ -28,8 +28,9 @@ class Map(pygame.sprite.Sprite):
         super().__init__(all_sprites)
         self.spn = [spn1, spn2]
         self.coords = [coords1, coords2]
-        self.scale = 2.0
-        self.image = load_image("map.png", colorkey=-1)
+        self.scale = 1.0
+        self.size = 450, 450
+        self.image = load_image("map.png")
         self.update_image()
         self.rect = self.image.get_rect()
         self.rect.top = 20
@@ -42,24 +43,25 @@ class Map(pygame.sprite.Sprite):
             self.scale = scale
         maps_server = 'http://static-maps.yandex.ru/1.x/'
         map_params = {
-            'll': ','.join(self.coords),
-            'spn': ','.join(self.spn),
+            'll': ','.join([str(elem) for elem in self.coords]),
+            'spn': ','.join([str(elem) for elem in self.spn]),
             'l': 'map',
-            'scale': str(self.scale)
+            'scale': str(self.scale),
+            'size': ','.join([str(elem) for elem in self.size])
         }
         response = requests.get(maps_server, params=map_params)
         with open('data\\map.png', 'wb') as f:
             f.write(response.content)
-        self.image = load_image("map.png", colorkey=-1)
+        self.image = load_image("map.png")
 
 
 running = True
 pygame.init()
 size = width, height = 800, 800
 screen = pygame.display.set_mode(size)
-map = Map(*map(str, '0.01 0.01 37.23452345 55.234562345'.split()))
+map = Map(*map(float, '0.01 0.01 37.23452345 55.234562345'.split()))
 dct_keys = {1073741899: 0.1, 1073741902: -0.1}
-dct_keys_2 = pygame.K_UP, pygame.K_DOWN, pygame.K_RIGHT, pygame.K_LEFT
+dct_keys_2 = {pygame.K_UP: (0, 1), pygame.K_DOWN: (0, -1), pygame.K_RIGHT: (2, 0), pygame.K_LEFT: (-2, 0)}
 
 
 def terminate():
@@ -73,11 +75,14 @@ while running:
         if event.type == pygame.QUIT:
             terminate()
         if event.type == pygame.KEYUP:
-            if event.key == pygame.K_PAGEUP:
+            if event.key == pygame.K_PAGEUP and 1 <= map.scale + 0.1 <= 4:
                 map.update_image(scale=map.scale + 0.1)
-            if event.key == pygame.K_PAGEDOWN:
+            if event.key == pygame.K_PAGEDOWN and 1 <= map.scale - 0.1 <= 4:
                 map.update_image(scale=map.scale - 0.1)
-
+            if event.key in dct_keys_2.keys():
+                tup = dct_keys_2[event.key]
+                new_coord = map.coords[0] + map.spn[0] * tup[0], map.coords[1] + map.spn[1] * tup[1]
+                map.update_image(coords=new_coord)
 
     pygame.display.flip()
     screen.fill((0, 0, 0))
